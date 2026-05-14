@@ -35,7 +35,7 @@ def get_analysis(job_description: str, cv_text: str) -> str:
     job_description = _sanitize(job_description, 10_000)
     cv_text = _sanitize(cv_text, 40_000)
 
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-3.1-flash-lite')
 
     prompt = f"""
 Tu es un expert senior en recrutement, chasseur de têtes et coach carrière avec 20 ans d'expérience.
