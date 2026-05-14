@@ -13,9 +13,12 @@ build/
 
 # Variables d'environnement (CONTIENT LA CLÉ API ET DB)
 backend/.env
+frontend/.env
 .env
 .env.*
 !.env.example
+!backend/.env.example
+!frontend/.env.example
 
 # ─── Frontend Node.js ─────────────────────────────────────────
 frontend/node_modules/

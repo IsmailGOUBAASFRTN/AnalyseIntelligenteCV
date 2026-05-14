@@ -9,19 +9,28 @@ function App() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
     const handleAnalysis = async (formData) => {
         setIsLoading(true);
         setError('');
         setAnalysisResult(null);
         try {
-            const response = await axios.post('http://127.0.0.1:8000/api/analyze', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
+            const response = await axios.post(`${API_BASE_URL}/api/analyze`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                timeout: 120000,
             });
             setAnalysisResult(response.data);
         } catch (err) {
-            setError(err.response?.data?.detail || 'Une erreur est survenue.');
+            if (err.code === 'ECONNABORTED') {
+                setError('La requête a expiré. Veuillez réessayer.');
+            } else if (err.response?.status === 413) {
+                setError('Le fichier est trop volumineux (maximum 10 MB).');
+            } else if (err.response?.status === 415) {
+                setError('Type de fichier non supporté. Formats acceptés : PDF, DOCX, TXT.');
+            } else {
+                setError(err.response?.data?.detail || 'Une erreur est survenue. Veuillez réessayer.');
+            }
         }
         setIsLoading(false);
     };

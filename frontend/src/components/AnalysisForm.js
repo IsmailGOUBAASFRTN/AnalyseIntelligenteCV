@@ -5,8 +5,29 @@ const AnalysisForm = ({ onAnalyze, isLoading }) => {
     const [jobDescriptionFile, setJobDescriptionFile] = useState(null);
     const [cvFiles, setCvFiles] = useState([]);
 
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+    const ALLOWED_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+
+    const validateFile = (file, label) => {
+        if (file.size > MAX_FILE_SIZE) {
+            return `${label} dépasse la taille maximale de 10 MB.`;
+        }
+        if (!ALLOWED_TYPES.includes(file.type) && !file.name.match(/\.(pdf|docx|txt)$/i)) {
+            return `${label} : type de fichier non supporté.`;
+        }
+        return null;
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (jobDescriptionFile) {
+            const err = validateFile(jobDescriptionFile, 'La fiche de poste');
+            if (err) { alert(err); return; }
+        }
+        for (const cv of cvFiles) {
+            const err = validateFile(cv, `Le CV '${cv.name}'`);
+            if (err) { alert(err); return; }
+        }
         const formData = new FormData();
         if (jobTitle) formData.append('job_title', jobTitle);
         if (jobDescriptionFile) formData.append('job_description_file', jobDescriptionFile);
