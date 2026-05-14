@@ -8,34 +8,107 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=API_KEY)
 
 def get_analysis(job_description: str, cv_text: str) -> str:
-    model = genai.GenerativeModel('gemini-2.5-pro')
-    
+    model = genai.GenerativeModel('gemini-3.1-flash-lite')
+
     prompt = f"""
-    Agis en tant qu'expert en recrutement. Analyse le CV fourni par rapport à la fiche de poste.
-    Fournis une analyse structurée au format JSON STRICT. N'ajoute aucun texte avant ou après le JSON.
+Tu es un expert senior en recrutement, chasseur de têtes et coach carrière avec 20 ans d'expérience.
+Tu travailles pour un cabinet de recrutement de premier plan et tu dois remettre une analyse de haute qualité à ton client recruteur.
 
-    Le JSON doit contenir les clés suivantes :
-    - "score": un score global d'adéquation en pourcentage (nombre entier de 0 à 100).
-    - "matching_keywords": une liste des mots-clés de la fiche de poste trouvés dans le CV.
-    - "summary": un résumé de 2-3 phrases sur l'adéquation du candidat.
-    - "strengths": une liste des points forts du CV par rapport au poste.
-    - "improvements": une liste de suggestions concrètes pour améliorer le CV pour ce poste.
-    - "alternative_jobs": une liste de 2 à 3 intitulés de postes alternatifs qui pourraient correspondre au profil.
-    - "skills_rating": un objet JSON notant les compétences sur 10 dans les catégories suivantes : 'Compétences Techniques', 'Expérience Professionnelle', 'Formation', 'Langues', 'Compétences Interpersonnelles'.
+═══════════════════════════════════════════
+RÈGLES ABSOLUES — À RESPECTER IMPÉRATIVEMENT
+═══════════════════════════════════════════
+1. Réponds UNIQUEMENT avec un objet JSON valide et complet.
+2. AUCUN texte avant ou après le JSON. Pas de ```json, pas de commentaires.
+3. Chaque champ listé ci-dessous est OBLIGATOIRE — ne laisse aucun champ vide ou null.
+4. Tous les textes sont en FRANÇAIS.
+5. Sois factuel : chaque évaluation doit être justifiée par un élément concret du CV ou du poste.
 
-    --- FICHE DE POSTE ---
-    {job_description}
+═══════════════════════════════════════════
+STRUCTURE JSON REQUISE
+═══════════════════════════════════════════
 
-    --- CV ---
-    {cv_text}
+{{
+  "score": <entier 0-100, adéquation globale CV/poste>,
+  "score_justification": "<1 phrase expliquant ce score de façon factuelle>",
 
-    --- ANALYSE JSON ---
-    """
+  "hiring_recommendation": "<exactement l'une des valeurs : 'Fortement recommandé' | 'Recommandé' | 'À considérer' | 'Non recommandé'>",
+  "seniority_level": "<niveau détecté dans le CV : 'Junior (0-2 ans)' | 'Confirmé (3-5 ans)' | 'Senior (6-10 ans)' | 'Expert (10+ ans)'>",
+  "years_of_experience": <entier estimé du nombre d'années d'expérience totales du candidat>,
+
+  "summary": "<analyse synthétique de 4-5 phrases couvrant : profil global du candidat, adéquation au poste, points forts majeurs, lacunes principales, verdict global>",
+
+  "matching_keywords": ["<compétence/technologie/diplôme du poste PRÉSENT dans le CV>"],
+  "missing_keywords": ["<compétence/technologie/diplôme du poste ABSENT du CV>"],
+
+  "strengths": [
+    "<point fort précis et argumenté avec référence à un élément concret du CV>"
+  ],
+
+  "improvements": [
+    "<action concrète et actionnable que le candidat devrait faire pour ce poste (ex: 'Obtenir une certification X', 'Mettre en avant Y')>"
+  ],
+
+  "red_flags": [
+    "<élément préoccupant du CV : trou d'emploi, instabilité, compétence manquante critique, ou 'Aucun' si rien à signaler>"
+  ],
+
+  "technical_gaps": [
+    "<compétence technique spécifiquement requise par le poste et absente ou insuffisante dans le CV>"
+  ],
+
+  "cover_letter_tips": [
+    "<conseil précis pour rédiger une lettre de motivation percutante pour CE poste spécifique>"
+  ],
+
+  "skills_rating": {{
+    "Compétences Techniques": <0-10>,
+    "Expérience Professionnelle": <0-10>,
+    "Formation": <0-10>,
+    "Langues": <0-10>,
+    "Compétences Interpersonnelles": <0-10>
+  }},
+
+  "experience_gap": "<écart entre l'expérience requise et celle du candidat, ex: 'Le poste exige 5 ans, le candidat en a 3' ou 'Aucun écart'>",
+
+  "alternative_jobs": [
+    "<intitulé de poste alternatif pour lequel ce profil serait encore plus adapté>"
+  ],
+
+  "interview_questions": [
+    {{
+      "question": "<question d'entretien pertinente et ciblée sur CE candidat>",
+      "objectif": "<ce que cette question cherche à évaluer : compétence, lacune, comportement>",
+      "reponse_attendue": "<réponse idéale détaillée que le recruteur devrait attendre d'un bon candidat, avec les éléments clés à mentionner>",
+      "conseil_recruteur": "<signe positif ou négatif à observer dans la réponse du candidat>"
+    }}
+  ]
+}}
+
+IMPORTANT : Le tableau "interview_questions" doit contenir EXACTEMENT 10 questions minimum, réparties ainsi :
+- 3 questions techniques (compétences du poste)
+- 2 questions comportementales (méthode STAR : Situation, Tâche, Action, Résultat)
+- 2 questions sur les lacunes détectées dans le CV
+- 2 questions de mise en situation (cas pratique lié au poste)
+- 1 question de motivation/projet professionnel
+
+═══════════════════════════════════════════
+FICHE DE POSTE
+═══════════════════════════════════════════
+{job_description}
+
+═══════════════════════════════════════════
+CV DU CANDIDAT
+═══════════════════════════════════════════
+{cv_text}
+
+═══════════════════════════════════════════
+ANALYSE JSON (commence directement par {{)
+═══════════════════════════════════════════
+"""
 
     try:
         response = model.generate_content(prompt)
-        # Nettoyer la réponse pour ne garder que le JSON
-        cleaned_response = response.text.strip().replace('```json', '').replace('```', '')
+        cleaned_response = response.text.strip().replace('```json', '').replace('```', '').strip()
         return cleaned_response
     except Exception as e:
         return f'{{"error": "Failed to get analysis from Gemini API: {str(e)}"}}'
